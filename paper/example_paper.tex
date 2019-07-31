@@ -19,7 +19,8 @@
 
 % Use the following line for the initial blind version submitted for review:
 \usepackage[accepted]{icml2019}
-
+% \usepackage[style=authoryear]{biblatex}
+% \addbibresource{example_paper.bib}
 % If accepted, instead use the following line for the camera-ready submission:
 %\usepackage[accepted]{icml2019}
 
@@ -48,7 +49,7 @@
 \icmlsetsymbol{equal}{*}
 
 \begin{icmlauthorlist}
-\icmlauthor{Or Dremer}{equal,cs}
+\icmlauthor{Orr Dermer}{equal,cs}
 \icmlauthor{Afek Adler}{equal,in}
 \end{icmlauthorlist}
 
@@ -57,7 +58,7 @@
 
 
 \icmlcorrespondingauthor{Afek Adler}{afekilayadler@gmail.com}
-\icmlcorrespondingauthor{Or Dremer}{odermer@gmail.com}
+\icmlcorrespondingauthor{Orr Dermer}{odermer@gmail.com}
 
 % You may provide any keywords that you
 % find helpful for describing your paper; these are used to populate
@@ -79,24 +80,45 @@
 \printAffiliationsAndNotice{\icmlEqualContribution} % otherwise use the standard text.
 
 \begin{abstract}
-Deep learning models are steal far away from human level performance in commonsense reasoning tasks.
-We introduce a Question Answering scheme that models the dependencies between answers by
+Deep learning models are still far away from human-level performance in commonsense reasoning tasks.
+We introduce a multi-choice question answering scheme that models the dependencies between answers by
 building a relationship graph between the answers for a given question. 
 then, we compute a centrality measure for each node (answer) in the graph and predict the answer by taking the node with the maximum value of that centrality measure.
-We test ourselves on the challenging CommonsenseQA dataset and show that although our method is capable of modeling more complex relationships between the answers we did not manage to improve the current state of the art.
+We test ourselves on the challenging CommonsenseQA dataset and show that although our method is capable of modeling more complex relationships between the answers we did not manage to improve the current state of the art on this task.
 \end{abstract}
 
 \section{Introduction}
-When we face a multi-choice problem where we have to choose the most 
-probable answer we arrive to it with prior information and knowledge. for example, we have some kind of a
-language model that tells us if sentence A is more probable then sentence B, and we have knowledge about the physical world which tells us what is more possible or probable.
+When we face a multi-choice question answering (QA) problem where we have to choose the most 
+probable answer we arrive at it with prior information and knowledge. for instance, we have some kind of a
 
-Whereas in some cases we succeeded to build algorithms that are better then humans on many machine learning tasks from different disciplines (e.g computer vision and  natural language processing). In the field of common sense reasoning (reference to commonsenseqa) state of the art algorithms are steal inferior to human level performance - this methods mainly use massive datasets of labeled examples with supervised machine learning algorithms in order to infer prediction roles. but in cases such as learning common sense and problems such as learning negative facts it is likely that this knowledge does not exist in the corpus of the pretrained language model but only in the dataset which is fine-tuned .
+Whereas in some cases the state of the art machine-learning methods which were trained on massive amount of data to infer prediction roles
+outperforms human-level by a large margin (e.g. SQUAD 2.0 \cite{rajpurkar2018know}),
+In the field of common sense reasoning  \cite{talmor2018commonsenseqa} state of the art algorithms fail to generalize and are yet inferior to human level performance.
+this is due to two main reasons. first, is that when using algorithms such as fine-tuning a pre-trained language model, it is likely that this knowledge (common sense) does not exist explicitly in the pre training corpus. and second, is due to the fact that creating massive datasets for this purpose solely is hard, and developed only in the last years mostly by crowdsourcing.
 
-due to this inherent difficulty of this methods the research community invested resources in creating a larger scale datasets specifically for common sense inference (swag,commonsenseqa,Explain Yourself!). 
+Due to this inherent difficulty of this methods the research community invests resources in creating larger-scale datasets in different difficulty levels, e.g., the SWAG \cite{zellers2018swag} dataset with ~100K examples where \cite{devlin2018bert} demonstrate a model which is already at a human level and the CommonseneQA \cite{talmor2018commonsenseqa} a dataset which was made especially for common sense reasoning with \~{}10K samples where the state of the art is much lower then human-level. for a detailed survey of resources see \cite{storks2019commonsense}. 
 
+In this work, we suggest and evaluate models which eliminate the Independence assumption between answers for a given question, aiming to improve the benchmark on the CommonsenseQA dataset. 
 
 \section{Background and Related Work}
+Research on machine common sense QA has long been acknowledged for it's critical component in natural language understanding. but only recently with the embracing of deep learning in natural language processing and crowdsourcing to create larger scale datasets, major breakthroughs has emerged; to the best of the author's knowledge, the first large scale common sense reasoning QA dataset was introduced is 2018 \cite{storks2019commonsense}.
+
+Due to the fact that the prominent approach to to solve common sense QA problems is with word embeddings (WE) and contextualized word embeddings (CWE) in the next section we will provide a brief introduction to CVE and explain how to use it in the context of common sense QA.
+
+% We would like to note that this paper address specifically solutions for multi-choice QA with common sense reasoning and not closely related themes such as visual commonsense reasoning or co reference resolution.
+
+\subsection{Contextualized Word Embeddings}
+Based on the pioneering work of Word2Vec \cite{mikolov2013distributed} which enabled words to be represented as vectors, those
+enriching the information contained in the input for a variation of language based machine learning tasks, many models extended the Word2Vec concept by taking context into account; the same word has a different meaning in different context. the leading approaches to obtain a contextualized word representations is using the hidden layer of an LSTM \cite{hochreiter1997long} and more specifically a biLSTM such as in ELMO \cite{peters2018deep} or more recently using a transformer architecture such as \cite{devlin2018bert,yang2019xlnet}.
+
+The great power of WE or CWE is to enable using a generic method as a basis for task specific machine learning models; for instance, in natural language processing there are many different tasks (e.g. machine translation, sentiment analysis) and a simple model based on CWE with fine tuning on a given dataset usually provides much better results than previous models on a given task, creating a new bencmark for this specific task. the fact that mega companies provides those trained models as an open source service makes it easy to use for academics and in the industry as one.
+
+CWE is a type of transfer learning method; a model is pretrained on a base dataset and fine tuned on the task dataset,  with the underlying hypothesis that information distilation is possible from one source (base dataset) to the other (task specific dataset).
+The main reason for the great success of CWE is that the base model is trained using supervised learning on huge amounts of data, e.g. BERT, was trained on 3,300M words. the fact that CWE models are also self trained makes it easier to collect such huge amount of data without the need to label examples. the downside of this models is that they use many parameters (BERT Large - 330M) - so trainig and infering requires large processing power and latency is a challenge for creating real time systems. in the next section we will introduce the benchmark model which we aim to improve - BERT for CommonsenseQA (which is identical to BERT for SWAG) as was introduced in the original paper of BERT.
+
+\subsection{BERT benchmark for SWAG}
+
+
 Submission cite{TechReport} to ICML 2019 will be entirely electronic, via a web site
 (not email). Information about the submission process and \LaTeX\ templates
 are available on the conference web site at:
@@ -570,7 +592,7 @@ stage.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-
+% \printbibliography
 \end{document}
 
 
