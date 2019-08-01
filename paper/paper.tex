@@ -130,6 +130,12 @@ However, breaking these assumptions was a crucial part of what made our construc
 
 % TODO: add a diagram displaying our construct
 
+Another part of the input sequence given to BERT is the segment embeddings - a number from {0, 1} which signifies wether the current token is part of the first sentece or the second. After trial and error, it was found that we perform best when giving a value of 1 for \emph{each} of the answer tokens, and 0 for the question tokens. That makes sense, as part of the desire for symmetry in our model, and the fact that BERT wasn't trained with a possibilty for a third sentence, so using, for example, the number 2 for our second answer would not make any sense to it.
+
+\subsection{Pair scores integration}
+
+
+
 \section{Stuff from the example paper}
 
 Submission cite{TechReport} to ICML 2019 will be entirely electronic, via a web site
