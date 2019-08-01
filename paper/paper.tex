@@ -118,6 +118,19 @@ The main reason for the great success of CWE is that the base model is trained u
 
 \subsection{BERT benchmark for SWAG}
 
+\section{Methodology}
+
+We derive our model from the BERT fine-tuning method over multichoice questions, as displayed in the original paper. However, as we want our model to compare between the different possible answers, we deviate from the original model by introducing the model with the question and 2 possible answers as each input sequence, for which the model returns a score - 1 meaning the first answer is more likely, and 0 if the second answer is the likeliest. Having received a score for each of pairs, we then integrate those into probability scores for each of the original answers - and then choose the one with the highest probability as our predicted answer.
+
+\subsection{Dataset alterations}
+
+In the original paper, each input sequence consisted of a classifier token ('[CLS]'), the question, a separator token ('[SEP]'), a possible answer, and then another separator token. The classifier token is unique, as the final hidden state corresponding to that token was used as the aggregate sequence representation for the question-answering task.
+Our model deviates from these assumptions. Instead, each input sequence was constructed from the question and 2 possible answers in the following manner: A classifier token, the first answer, a separator token, the question, a separator token, the second answer, and another classifier token. Note, that this construction break several of the original BERT paper assumptions - each of our input sequences consist of more than just one classifier token, and more than just two sentences. As such, it is possible that BERT will suffer from reduced performance, as its entire training process was built around these assumptions.
+However, breaking these assumptions was a crucial part of what made our constructions work - it allowed for each of the classifier tokens to "absorb" the meaning of the answer closer to it, and imporved the symmetry of our model in regard to each of the two answers.
+
+% TODO: add a diagram displaying our construct
+
+\section{Stuff from the example paper}
 
 Submission cite{TechReport} to ICML 2019 will be entirely electronic, via a web site
 (not email). Information about the submission process and \LaTeX\ templates
