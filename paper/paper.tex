@@ -6,6 +6,7 @@
 \usepackage{microtype}
 \usepackage{graphicx}
 \usepackage{subfigure}
+\usepackage{amsmath}
 \usepackage{booktabs} % for professional tables
 
 % hyperref makes hyperlinks in the resulting PDF.
@@ -128,13 +129,57 @@ In the original paper, each input sequence consisted of a classifier token ('[CL
 Our model deviates from these assumptions. Instead, each input sequence was constructed from the question and 2 possible answers in the following manner: A classifier token, the first answer, a separator token, the question, a separator token, the second answer, and another classifier token. Note, that this construction break several of the original BERT paper assumptions - each of our input sequences consist of more than just one classifier token, and more than just two sentences. As such, it is possible that BERT will suffer from reduced performance, as its entire training process was built around these assumptions.
 However, breaking these assumptions was a crucial part of what made our constructions work - it allowed for each of the classifier tokens to "absorb" the meaning of the answer closer to it, and imporved the symmetry of our model in regard to each of the two answers.
 
-% TODO: add a diagram displaying our construct
+% TODO: add a diagram displaying our construct and the score calculation (including calculating for (i,j) and (j,i) and averaging with 1-s_(j,i)).
 
-Another part of the input sequence given to BERT is the segment embeddings - a number from {0, 1} which signifies wether the current token is part of the first sentece or the second. After trial and error, it was found that we perform best when giving a value of 1 for \emph{each} of the answer tokens, and 0 for the question tokens. That makes sense, as part of the desire for symmetry in our model, and the fact that BERT wasn't trained with a possibilty for a third sentence, so using, for example, the number 2 for our second answer would not make any sense to it.
+Another part of the input sequence given to BERT is the segment embeddings - a number from {0, 1} which signifies wether the current token is part of the first sentece or the second. After trial and error, it was found that we perform best when giving a value of 1 for \textbf{each} of the answer tokens, and 0 for the question tokens. That makes sense, as part of the desire for symmetry in our model, and the fact that BERT wasn't trained with a possibilty for a third sentence, so using, for example, the number 2 for our second answer would not make any sense to it.
+
+After passing our input sequence through BERT, we use a concatenation of the final hidden states matching the classifier tokens as the sequence representation. We also learn as a parameter a vector whose dot product with the sequence representation is the score for the given answer pair.
 
 \subsection{Pair scores integration}
 
+We conceived a few methods of combining the different pair scores into probabilities for the answers. In this section we will review those methods and compare them.
 
+\subsubsection{Learnt weights}
+
+In this method, we introduce more layers to derive the indiviual probabilities from the pair scores. We used 2 layers, with a hidden size of $ (number\ of\ pairs)^2 $ and normalizing with a softmax layer.
+
+\subsubsection{Markov chains}
+
+In this method, we find the stationary distribution of a weighted graph whose edge's weights are derived from our pair scores.
+The reasoning for this process is as follows - imagine a graph whose vertices are the given answers. We begin by choosing an answer randomly, and we want to move on to the best possible answer. At each time step, we move to a different answer, choosing based on the scores of the pairs in which our current answer participates, i.e. the better another answer performed against our current answer, the more likely we are to move to it.
+This process is powerful, because it captures the dependency between the different answers, e.g. if answer B is better than answer A, and answer C is better than answer B, than we'd like to factor in that information when comparing between answers A and C.
+
+Simply constructing a matrix with each cell being the score for the matching pair, normalizing each row so that we have a probability matrix, and then calculating the stationary distribution doesn't work well in practice. This is because normalizing the matrix causes the model to be unable to understand the absolute value of the scores, e.g. if it sees a row in which all values are similar, it can't differ the case in which all scores were low (and thus our "current" answer is good) from the case all of the scores were high.
+Consider the following matrix:
+
+$$
+\begin{bmatrix}
+0 & 0.95 & 0.85 & 0.25 \\
+0.05 & 0 & 0.98 & 0.74 \\
+0.15 & 0.02 & 0 & 0.45 \\
+0.75 & 0.26 & 0.55 & 0
+\end{bmatrix}
+$$
+
+We can see that the third answer had won in every comparison - thus, we would expect it to be assigned the highest probability. Given the currently described method, this in not the case, as the probabilities received would be:
+$$ \begin{bmatrix} 0.22614831 & 0.16630443 & 0.29576885 & \textbf{0.31177841} \end{bmatrix} $$
+
+We solve this problem by adding the average of each column to the matching cell on the diagonal. This makes sense, as this gives us the option of staying on the current choice, and the better a certain choice had performed against the other choices, the greater the possibilty of staying on it.
+After doing this, we derive this matrix for our example:
+
+$$
+\begin{bmatrix}
+\textbf{0.31} & 0.95 & 0.85 & 0.25 \\
+0.05 & \textbf{0.41} & 0.98 & 0.74 \\
+0.15 & 0.02 & \textbf{0.79} & 0.45 \\
+0.75 & 0.26 & 0.55 & \textbf{0.48}
+\end{bmatrix}
+$$
+
+And this probability matrix for our choices:
+$$ \begin{bmatrix} 0.16845236 & 0.13252954 & \textbf{0.43521662} & 0.26380148 \end{bmatrix} $$
+
+\subsection{Learning} 
 
 \section{Stuff from the example paper}
 
