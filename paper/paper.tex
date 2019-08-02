@@ -133,7 +133,7 @@ However, breaking these assumptions was a crucial part of what made our construc
 
 Another part of the input sequence given to BERT is the segment embeddings - a number from {0, 1} which signifies wether the current token is part of the first sentece or the second. After trial and error, it was found that we perform best when giving a value of 1 for \textbf{each} of the answer tokens, and 0 for the question tokens. That makes sense, as part of the desire for symmetry in our model, and the fact that BERT wasn't trained with a possibilty for a third sentence, so using, for example, the number 2 for our second answer would not make any sense to it.
 
-After passing our input sequence through BERT, we use a concatenation of the final hidden states matching the classifier tokens as the sequence representation. We also learn as a parameter a vector whose dot product with the sequence representation is the score for the given answer pair.
+After passing our input sequence through BERT, we use a concatenation of the final hidden states matching the classifier tokens as the sequence representation. We learn as a parameter a vector whose dot product with the sequence representation is the score for the given answer pair.
 
 \subsection{Pair scores integration}
 
@@ -148,6 +148,8 @@ In this method, we introduce more layers to derive the indiviual probabilities f
 In this method, we find the stationary distribution of a weighted graph whose edge's weights are derived from our pair scores.
 The reasoning for this process is as follows - imagine a graph whose vertices are the given answers. We begin by choosing an answer randomly, and we want to move on to the best possible answer. At each time step, we move to a different answer, choosing based on the scores of the pairs in which our current answer participates, i.e. the better another answer performed against our current answer, the more likely we are to move to it.
 This process is powerful, because it captures the dependency between the different answers, e.g. if answer B is better than answer A, and answer C is better than answer B, than we'd like to factor in that information when comparing between answers A and C.
+
+% TODO: add a markov chain graph here
 
 Simply constructing a matrix with each cell being the score for the matching pair, normalizing each row so that we have a probability matrix, and then calculating the stationary distribution doesn't work well in practice. This is because normalizing the matrix causes the model to be unable to understand the absolute value of the scores, e.g. if it sees a row in which all values are similar, it can't differ the case in which all scores were low (and thus our "current" answer is good) from the case all of the scores were high.
 Consider the following matrix:
@@ -179,7 +181,21 @@ $$
 And this probability matrix for our choices:
 $$ \begin{bmatrix} 0.16845236 & 0.13252954 & \textbf{0.43521662} & 0.26380148 \end{bmatrix} $$
 
-\subsection{Learning} 
+\subsubsection{Tie-breakers}
+
+This is not a method on its own, but it can be used on top of the other ones.
+Essentially, we can assert a "Certainty Threshold" on the probabilities obtained from the other methods, a rate between two probabilities under which we consider our prediction to be uncertain/unstable.
+If such a scenario arises, we then resort to choosing between the two highest-scored choices directly - that is, by looking at the score given to the pair and deciding accordingly.
+
+Note that this change does not cause a change in the probabilities themselves, it only changes the predicted answer. As such, it does not cause a change in the measured loss, thus does not affect the learned parameters. It does change, however, the measured accuracy, which means that when learning parameters we will favor a parameter set that maximizes the accuracy given this change.
+
+\section{Experiments and Results} 
+
+As our model deviates greatly from the assumptions that were made when the original BERT weights were trained, it is understanable that our model required more epochs to converge than the amount of epochs the original paper used when fine-tuning to the question answering task.
+We should also note that because each sample now consists of much more input sequences (the original model had one sequence per possible answer, our model has one sequence per possible answer \textbf{pair}), we are now more limited in our batch size, as the GPU has to hold the entire batch simultaneously. This problem can be mitigated by using gradient accumulation.
+
+Our models were trained in parts.
+In the first part, we trained solely on the dataset alterations part, without intergrating the pair scores. That is, our model was trained directly on identifying the better answer in a pair
 
 \section{Stuff from the example paper}
 
