@@ -1,0 +1,48 @@
+\documentclass{article}
+
+\usepackage[latin1]{inputenc}
+\usepackage{tikz}
+
+\usetikzlibrary{shapes,arrows}
+
+\begin{document}
+\pagestyle{empty}
+
+
+% Define block styles
+\tikzstyle{decision} = [diamond, draw, fill=blue!20, 
+    text width=4.5em, text badly centered, node distance=3cm, inner sep=0pt]
+\tikzstyle{block} = [rectangle, draw, fill=blue!20, 
+    text width=5em, text centered, rounded corners, minimum height=2em, node distance=2cm]
+\tikzstyle{block8} = [rectangle, draw, fill=blue!7, 
+text width=5em, text centered, rounded corners, minimum height=2em, node distance=2cm, minimum width=8cm]
+\tikzstyle{bigblock10} = [rectangle, draw, fill=red!20, 
+	text width=5em, text centered, rounded corners, minimum height=4em, minimum width=10cm]
+\tikzstyle{line} = [draw, -latex']
+\tikzstyle{cloud} = [draw, ellipse,fill=red!20, node distance=3cm,
+    minimum height=2em]
+
+\begin{tikzpicture}[node distance = 2cm, auto]
+	\node [bigblock10] (bert) at (0,0) {bert model};
+	\node [block, below of=bert] (SEP1) {'SEP'};
+	\node [block, left of=SEP1] (question) {question};
+	\node [block, left of=question] (CLS) {'CLS'};
+	\node [block, right of=SEP1] (answer) {answer};
+	\node [block, right of=answer] (SEP2) {'SEP'};
+	\node [block] (classifier) at (-4,2) {classifier token};
+	\node [block8] (rest) at (1,2) {unused tokens};
+    \path [line] (CLS) -- ([xshift=-4cm]bert.south);
+    \path [line] (question) -- ([xshift=-2cm]bert.south);
+    \path [line] (SEP1) -- (bert.south);
+    \path [line] (answer) -- ([xshift=2cm]bert.south);
+    \path [line] (SEP2) -- ([xshift=4cm]bert.south);
+    \path [line] ([xshift=-4cm]bert.north) -- (classifier.south);
+        
+    \path [line,dashed] ([xshift=-2cm]bert.north) -- ([xshift=-3cm]rest.south);
+    \path [line,dashed] ([xshift=-0cm]bert.north) -- ([xshift=-1cm]rest.south);
+    \path [line,dashed] ([xshift=2cm]bert.north) -- ([xshift=1cm]rest.south);
+    \path [line,dashed] ([xshift=4cm]bert.north) -- ([xshift=3cm]rest.south);
+    
+\end{tikzpicture}
+    
+\end{document}
