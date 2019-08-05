@@ -14,7 +14,7 @@
 % please comment out the following usepackage line and replace
 % \usepackage{icml2019} with \usepackage[nohyperref]{icml2019} above.
 \usepackage{hyperref}
-
+\usepackage{mathtools}
 % Attempt to make hyperref and algorithmic work together better:
 \newcommand{\theHalgorithm}{\arabic{algorithm}}
 
@@ -115,11 +115,52 @@ enriching the information contained in the input for a variation of language bas
 The great power of WE or CWE is to enable using a generic method as a basis for task specific machine learning models; for instance, in natural language processing there are many different tasks (e.g. machine translation, sentiment analysis) and a simple model based on CWE with fine tuning on a given dataset usually provides much better results than previous models on a given task, creating a new bencmark for this specific task. the fact that mega companies provides those trained models as an open source service makes it easy to use for academics and in the industry as one.
 
 CWE is a type of transfer learning method; a model is pretrained on a base dataset and fine tuned on the task dataset,  with the underlying hypothesis that information distilation is possible from one source (base dataset) to the other (task specific dataset).
-The main reason for the great success of CWE is that the base model is trained using supervised learning on huge amounts of data, e.g. BERT, was trained on 3,300M words. the fact that CWE models are also self trained makes it easier to collect such huge amount of data without the need to label examples. the downside of this models is that they use many parameters (BERT Large - 330M) - so trainig and infering requires large processing power and latency is a challenge for creating real time systems. in the next section we will introduce the benchmark model which we aim to improve - BERT for CommonsenseQA (which is identical to BERT for SWAG) as was introduced in the original paper of BERT.
+The main reason for the great success of CWE is that the base model is trained using supervised learning on huge amounts of data, e.g. BERT, was trained on 3.3B words. the fact that CWE models are also self trained makes it easier to collect such huge amount of data without the need to label examples. the downside of this models is that they use many parameters (BERT Large - 340M) - so trainig and infering requires large processing power and latency is a challenge for creating real time systems. in the next section we will introduce the benchmark model which we aim to improve - BERT for CommonsenseQA (which is identical to BERT for SWAG) as was introduced in the original paper of BERT.
 
-\subsection{BERT benchmark for SWAG}
+\subsection{BERT}
+BERT is a word based CWE model that was pre-trained on two learning objectives. given a sentence, predict masked words (15\% of the words were masked) and next sentence prediction. BERT’s  model  architecture is a multi-layer bidirectional Transformer encoder \cite{vaswani2017attention} with the following hyper-parameters (BERT Large) - 12 Transformer blocks, hidden size 1024 (H) and 16 self attention heads. BERT input can be one or two sentences.
+
+BERT input representation (figure \ref{bert_input_repr}) uses WordPeace \cite{wu2016google} tokenization which is a data driven method that aims to achieve a balance between vocabulary size and out-of-vocab words. this way BERT stores only 30K vocabulary words very rarely encounter out-of-vocab words when tokenizing English texts. two special token are added for each sentence, a start token [CLS] and an end token [SEP]. if the input contains two sentences another [CLS] token is added in between the sentences. Due to the fact that Transformers do not encode the sequential nature of their inputs a segment ids and position embeddings are added as well to the input.
+
+\begin{figure}[ht]
+\vskip 0.2in
+\begin{center}
+\centerline{\includegraphics[width=\columnwidth]{bert_input_repr}}
+\caption{input representation for BERT (from the original paper).}
+\label{bert_input_repr}
+\end{center}
+\vskip -0.2in
+\end{figure}
+fine tuning BERT is simply swapping out the appropriate input and output, whether the input is a single text or a text pair the input and output pairs are given to the model and the parameters are fine-tuned by back-propagation end to end after connecting to the [CLS] token embedding to a task specific classification layer with a given loss function. 
+
+\subsection{BERT baseline for SWAG}
+
+In the BERT Paper, the authors approach the SWAG challange with the following input (input #\ref{original_input_order}). that input is fed to BERT architecture and the [CLS] token embedding is used to predict a logit by calculating a dot product with a learned vector. this process is done for each answer independently of each other and then a softmax layer with cross entropy loss is calculated to compute the error. As we can see, this architecture introduce only H (1024) new parameters to the existing BERT model.
+\begin{equation}
+[CLS][Question][SEP][Answer][SEP] 
+\label{original_input_order}
+\end{equation} 
+
+\section{CommonSeneseQA}
+CommonSeneseQA is a dataset which specifically made for common sense reasoning, by asking crowd workers to generate questions from concepts from ConceptNet. it contains 12,247 examples and 5 answers per question. 
+the Authors use the same architecture as in the BERT benchmark for SWAG
+and report Accuracy score of 56.7\%. The current state of the art
+on this dataset is currently 68.3\% accuracy, 23.6\% below human level.
 
 \section{Methodology}
+We propose a method with different variants to model the dependencies between answers, by feeding answer pairs jointly to BERT's architecture. by doing so, we contribute in different ways:
+
+\begin{itemize}
+    
+\item making the model more expressive by removing the independence assumption
+
+\item extending the model to deal with questions as 'what is largest?"
+
+\item  extending the model to deal with answers as 'all answer are correct" or 'none of the above"
+
+\end{itemize}
+
+
 
 We derive our model from the BERT fine-tuning method over multichoice questions, as displayed in the original paper. However, as we want our model to compare between the different possible answers, we deviate from the original model by introducing the model with the question and 2 possible answers as each input sequence, for which the model returns a score - 1 meaning the first answer is more likely, and 0 if the second answer is the likeliest. Having received a score for each of pairs, we then integrate those into probability scores for each of the original answers - and then choose the one with the highest probability as our predicted answer.
 
