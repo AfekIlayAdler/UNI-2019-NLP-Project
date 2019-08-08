@@ -8,6 +8,25 @@
 \usepackage{subfigure}
 \usepackage{amsmath}
 \usepackage{booktabs} % for professional tables
+\usepackage[latin1]{inputenc}
+\usepackage{tikz}
+
+\usetikzlibrary{shapes,arrows}
+
+% Define block styles
+
+\tikzstyle{block} = [rectangle, draw, fill=blue!20, 
+text width=5em, text centered, rounded corners, minimum height=2em, node distance=2cm]
+\tikzstyle{block8} = [rectangle, draw, fill=blue!7, 
+text width=5em, text centered, rounded corners, minimum height=2em, node distance=2cm, minimum width=8cm]
+\tikzstyle{block10} = [rectangle, draw, fill=blue!7, 
+text width=5em, text centered, rounded corners, minimum height=2em, node distance=2cm, minimum width=10cm]
+\tikzstyle{bigblock10} = [rectangle, draw, fill=red!20, 
+text width=5em, text centered, rounded corners, minimum height=4em, minimum width=10cm]
+\tikzstyle{bigblock14} = [rectangle, draw, fill=red!20, 
+text width=5em, text centered, rounded corners, minimum height=4em, minimum width=14cm]
+\tikzstyle{line} = [draw, -latex']
+
 
 % hyperref makes hyperlinks in the resulting PDF.
 % If your build breaks (sometimes temporarily if a hyperlink spans a page)
@@ -125,9 +144,87 @@ We derive our model from the BERT fine-tuning method over multichoice questions,
 
 \subsection{Dataset alterations}
 
-In the original paper, each input sequence consisted of a classifier token ('[CLS]'), the question, a separator token ('[SEP]'), a possible answer, and then another separator token. The classifier token is unique, as the final hidden state corresponding to that token was used as the aggregate sequence representation for the question-answering task.
-Our model deviates from these assumptions. Instead, each input sequence was constructed from the question and 2 possible answers in the following manner: A classifier token, the first answer, a separator token, the question, a separator token, the second answer, and another classifier token. Note, that this construction break several of the original BERT paper assumptions - each of our input sequences consist of more than just one classifier token, and more than just two sentences. As such, it is possible that BERT will suffer from reduced performance, as its entire training process was built around these assumptions.
+In the original paper, each input sequence consisted of a classifier token ('[CLS]'), the question, a separator token ('[SEP]'), a possible answer, and then another separator token, as seen in figure \ref{fig:model_orig}. The classifier token is unique, as the final hidden state corresponding to that token was used as the aggregate sequence representation for the question-answering task.
+
+\tikzset{
+	font={\fontsize{12pt}{12}\selectfont}}
+
+\begin{figure}[h!]
+\begin{center}
+\scalebox{0.7}{
+	\begin{tikzpicture}[node distance = 2cm, auto]
+	\node [bigblock10] (bert) at (0,0) {Pretrained BERT };
+	\node [block, below of=bert] (SEP1) {'SEP'};
+	\node [block, left of=SEP1] (question) {Question};
+	\node [block, left of=question] (CLS) {'CLS'};
+	\node [block, right of=SEP1] (answer) {Answer};
+	\node [block, right of=answer] (SEP2) {'SEP'};
+	\node [block] (classifier) at (-4,2) {Classifier token};
+	\node [block8] (rest) at (1,2) {Unused tokens};
+	\path [line] (CLS) -- ([xshift=-4cm]bert.south);
+	\path [line] (question) -- ([xshift=-2cm]bert.south);
+	\path [line] (SEP1) -- (bert.south);
+	\path [line] (answer) -- ([xshift=2cm]bert.south);
+	\path [line] (SEP2) -- ([xshift=4cm]bert.south);
+	\path [line] ([xshift=-4cm]bert.north) -- (classifier.south);
+	
+	\path [line,dashed] ([xshift=-2cm]bert.north) -- ([xshift=-3cm]rest.south);
+	\path [line,dashed] ([xshift=-0cm]bert.north) -- ([xshift=-1cm]rest.south);
+	\path [line,dashed] ([xshift=2cm]bert.north) -- ([xshift=1cm]rest.south);
+	\path [line,dashed] ([xshift=4cm]bert.north) -- ([xshift=3cm]rest.south);
+	
+	\end{tikzpicture}
+}
+\end{center}
+\caption{The original paper's question-answering model.}
+\label{fig:model_orig}
+\end{figure}
+
+Our model deviates from these assumptions. Instead, each input sequence was constructed from the question and 2 possible answers in the following manner: A classifier token, the first answer, a separator token, the question, a separator token, the second answer, and another classifier token (As seen in figure \ref{fig:model}). Note, that this construction break several of the original BERT paper assumptions - each of our input sequences consist of more than just one classifier token, and more than just two sentences. As such, it is possible that BERT will suffer from reduced performance, as its entire training process was built around these assumptions.
 However, breaking these assumptions was a crucial part of what made our constructions work - it allowed for each of the classifier tokens to "absorb" the meaning of the answer closer to it, and imporved the symmetry of our model in regard to each of the two answers.
+
+\tikzset{
+	font={\fontsize{13pt}{14}\selectfont}}
+
+\begin{figure}[h!]
+\begin{center}
+	\scalebox{0.6}{
+		\begin{tikzpicture}[node distance = 2cm, auto]
+		\node [bigblock14] (bert) at (0,0) {Pretrained BERT};
+		\node [block, below of=bert] (Question) {Question};
+		\node [block, left of=Question] (Sep1) {'SEP'};
+		\node [block, left of=Sep1] (Answer1) {Answer1};
+		\node [block, left of=Answer1] (Cls1) {'CLS'};
+		\node [block, right of=Question] (Sep2) {'SEP'};
+		\node [block, right of=Sep2] (Answer2) {Answer2};
+		\node [block, right of=Answer2] (Cls2) {'CLS'};
+		\node [block] (classifier1) at (-6,2) {Classifier token 1};
+		\node [block] (classifier2) at (6,2) {Classifier token 2};
+		\node [block10] (rest) at (0,2) {Unused tokens};
+		
+		\path [line] (Cls1) -- ([xshift=-6cm]bert.south);
+		\path [line] (Answer1) -- ([xshift=-4cm]bert.south);
+		\path [line] (Sep1) -- ([xshift=-2cm]bert.south);
+		\path [line] (Question) -- (bert.south);
+		\path [line] (Sep2) -- ([xshift=2cm]bert.south);
+		\path [line] (Answer2) -- ([xshift=4cm]bert.south);
+		\path [line] (Cls2) -- ([xshift=6cm]bert.south);
+		
+		
+		\path [line] ([xshift=-6cm]bert.north) -- (classifier1.south);
+		\path [line] ([xshift=6cm]bert.north) -- (classifier2.south);
+		
+		\path [line,dashed] ([xshift=-4cm]bert.north) -- ([xshift=-4cm]rest.south);
+		\path [line,dashed] ([xshift=-2cm]bert.north) -- ([xshift=-2cm]rest.south);
+		\path [line,dashed] ([xshift=-0cm]bert.north) -- ([xshift=-0cm]rest.south);
+		\path [line,dashed] ([xshift=2cm]bert.north) -- ([xshift=2cm]rest.south);
+		\path [line,dashed] ([xshift=4cm]bert.north) -- ([xshift=4cm]rest.south);
+		\end{tikzpicture}
+	}
+\end{center}
+\caption{Our question-answering model.}
+\label{fig:model}
+\end{figure}
 
 % TODO: add a diagram displaying our construct and the score calculation (including calculating for (i,j) and (j,i) and averaging with 1-s_(j,i)).
 
