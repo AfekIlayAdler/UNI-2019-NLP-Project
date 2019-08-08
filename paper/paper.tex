@@ -226,7 +226,19 @@ However, breaking these assumptions was a crucial part of what made our construc
 \label{fig:model}
 \end{figure}
 
-% TODO: add a diagram displaying our construct and the score calculation (including calculating for (i,j) and (j,i) and averaging with 1-s_(j,i)).
+
+$$
+P := \text{\textit{Learned parameter}}
+$$
+$$
+CT_{i,j} := \text{\textit{Classifier Tokens Concatened}}
+$$
+$$
+S'_{i,j} := P \cdot CT_{i,j}
+$$
+$$
+\text{\textit{Score}}_{i,j} := \frac{S'_{i,j} + (1 - S'_{j,i})}{2}
+$$
 
 Another part of the input sequence given to BERT is the segment embeddings - a number from {0, 1} which signifies wether the current token is part of the first sentece or the second. After trial and error, it was found that we perform best when giving a value of 1 for \textbf{each} of the answer tokens, and 0 for the question tokens. That makes sense, as part of the desire for symmetry in our model, and the fact that BERT wasn't trained with a possibilty for a third sentence, so using, for example, the number 2 for our second answer would not make any sense to it.
 
