@@ -292,7 +292,34 @@ As our model deviates greatly from the assumptions that were made when the origi
 We should also note that because each sample now consists of much more input sequences (the original model had one sequence per possible answer, our model has one sequence per possible answer \textbf{pair}), we are now more limited in our batch size, as the GPU has to hold the entire batch simultaneously. This problem can be mitigated by using gradient accumulation.
 
 Our models were trained in parts.
-In the first part, we trained solely on the dataset alterations part, without intergrating the pair scores. That is, our model was trained directly on identifying the better answer in a pair
+In the first part, we trained solely on the dataset alterations part, without intergrating the pair scores. That is, our model was trained directly on identifying the better answer from a pair of answers. After 5 epochs with a dynamic learning rate (starting from 1e-6 and decreasing to 4e-7) we were able to acheive a 70.3\% accuracy on the dev set. (Note that this accuracy is measured over pairs and not over questions - it is not comparable to the performance of other models over this dataset).
+
+In the second part, we trained our model for 2 more epochs using each method of pair-scores integration suggested. Emperically, using the tie-breakers method on any of the suggested models caused a drop in performance, and thus it was discarded.
+A comparison of our experiment results follows.
+
+\begin{table}[h!]
+	\label{tbl:accuracy}
+	\vskip 0.15in
+	\begin{center}
+		\begin{small}
+			\begin{sc}
+				\begin{tabular}{lr}
+					\toprule
+					Method	& Accuracy (dev-set)\\
+					\midrule
+					Comparative Model + \\ \qquad \qquad Markov chains 	& 49.3\% \\
+					Comparative Model + \\ \qquad \qquad Learnt weights 	& 49.1\% \\
+					\midrule
+					Random guess & 25\% \\
+					Original BERT model & \textbf{56.7\%} \\
+					\bottomrule
+				\end{tabular}
+			\end{sc}
+		\end{small}
+	\end{center}
+	\vskip -0.1in
+	\caption{Partial model accuracy on pairs}
+\end{table}
 
 \section{Stuff from the example paper}
 
