@@ -6,7 +6,27 @@
 \usepackage{microtype}
 \usepackage{graphicx}
 \usepackage{subfigure}
+\usepackage{amsmath}
 \usepackage{booktabs} % for professional tables
+\usepackage[latin1]{inputenc}
+\usepackage{tikz}
+
+\usetikzlibrary{shapes,arrows}
+
+% Define block styles
+
+\tikzstyle{block} = [rectangle, draw, fill=blue!20, 
+text width=5em, text centered, rounded corners, minimum height=2em, node distance=2cm]
+\tikzstyle{block8} = [rectangle, draw, fill=blue!7, 
+text width=5em, text centered, rounded corners, minimum height=2em, node distance=2cm, minimum width=8cm]
+\tikzstyle{block10} = [rectangle, draw, fill=blue!7, 
+text width=5em, text centered, rounded corners, minimum height=2em, node distance=2cm, minimum width=10cm]
+\tikzstyle{bigblock10} = [rectangle, draw, fill=red!20, 
+text width=5em, text centered, rounded corners, minimum height=4em, minimum width=10cm]
+\tikzstyle{bigblock14} = [rectangle, draw, fill=red!20, 
+text width=5em, text centered, rounded corners, minimum height=4em, minimum width=14cm]
+\tikzstyle{line} = [draw, -latex']
+
 
 % hyperref makes hyperlinks in the resulting PDF.
 % If your build breaks (sometimes temporarily if a hyperlink spans a page)
@@ -118,6 +138,202 @@ The main reason for the great success of CWE is that the base model is trained u
 
 \subsection{BERT benchmark for SWAG}
 
+\section{Methodology}
+
+We derive our model from the BERT fine-tuning method over multichoice questions, as displayed in the original paper. However, as we want our model to compare between the different possible answers, we deviate from the original model by introducing the model with the question and 2 possible answers as each input sequence, for which the model returns a score - 1 meaning the first answer is more likely, and 0 if the second answer is the likeliest. Having received a score for each of pairs, we then integrate those into probability scores for each of the original answers - and then choose the one with the highest probability as our predicted answer.
+
+\subsection{Dataset alterations}
+
+In the original paper, each input sequence consisted of a classifier token ('[CLS]'), the question, a separator token ('[SEP]'), a possible answer, and then another separator token, as seen in figure \ref{fig:model_orig}. The classifier token is unique, as the final hidden state corresponding to that token was used as the aggregate sequence representation for the question-answering task.
+
+\tikzset{
+	font={\fontsize{12pt}{12}\selectfont}}
+
+\begin{figure}[h!]
+\begin{center}
+\scalebox{0.7}{
+	\begin{tikzpicture}[node distance = 2cm, auto]
+	\node [bigblock10] (bert) at (0,0) {Pretrained BERT };
+	\node [block, below of=bert] (SEP1) {'SEP'};
+	\node [block, left of=SEP1] (question) {Question};
+	\node [block, left of=question] (CLS) {'CLS'};
+	\node [block, right of=SEP1] (answer) {Answer};
+	\node [block, right of=answer] (SEP2) {'SEP'};
+	\node [block] (classifier) at (-4,2) {Classifier token};
+	\node [block8] (rest) at (1,2) {Unused tokens};
+	\path [line] (CLS) -- ([xshift=-4cm]bert.south);
+	\path [line] (question) -- ([xshift=-2cm]bert.south);
+	\path [line] (SEP1) -- (bert.south);
+	\path [line] (answer) -- ([xshift=2cm]bert.south);
+	\path [line] (SEP2) -- ([xshift=4cm]bert.south);
+	\path [line] ([xshift=-4cm]bert.north) -- (classifier.south);
+	
+	\path [line,dashed] ([xshift=-2cm]bert.north) -- ([xshift=-3cm]rest.south);
+	\path [line,dashed] ([xshift=-0cm]bert.north) -- ([xshift=-1cm]rest.south);
+	\path [line,dashed] ([xshift=2cm]bert.north) -- ([xshift=1cm]rest.south);
+	\path [line,dashed] ([xshift=4cm]bert.north) -- ([xshift=3cm]rest.south);
+	
+	\end{tikzpicture}
+}
+\end{center}
+\caption{The original paper's question-answering model.}
+\label{fig:model_orig}
+\end{figure}
+
+Our model deviates from these assumptions. Instead, each input sequence was constructed from the question and 2 possible answers in the following manner: A classifier token, the first answer, a separator token, the question, a separator token, the second answer, and another classifier token (As seen in figure \ref{fig:model}). Note, that this construction break several of the original BERT paper assumptions - each of our input sequences consist of more than just one classifier token, and more than just two sentences. As such, it is possible that BERT will suffer from reduced performance, as its entire training process was built around these assumptions.
+However, breaking these assumptions was a crucial part of what made our constructions work - it allowed for each of the classifier tokens to "absorb" the meaning of the answer closer to it, and imporved the symmetry of our model in regard to each of the two answers.
+
+\tikzset{
+	font={\fontsize{13pt}{14}\selectfont}}
+
+\begin{figure}[h!]
+\begin{center}
+	\scalebox{0.6}{
+		\begin{tikzpicture}[node distance = 2cm, auto]
+		\node [bigblock14] (bert) at (0,0) {Pretrained BERT};
+		\node [block, below of=bert] (Question) {Question};
+		\node [block, left of=Question] (Sep1) {'SEP'};
+		\node [block, left of=Sep1] (Answer1) {Answer1};
+		\node [block, left of=Answer1] (Cls1) {'CLS'};
+		\node [block, right of=Question] (Sep2) {'SEP'};
+		\node [block, right of=Sep2] (Answer2) {Answer2};
+		\node [block, right of=Answer2] (Cls2) {'CLS'};
+		\node [block] (classifier1) at (-6,2) {Classifier token 1};
+		\node [block] (classifier2) at (6,2) {Classifier token 2};
+		\node [block10] (rest) at (0,2) {Unused tokens};
+		
+		\path [line] (Cls1) -- ([xshift=-6cm]bert.south);
+		\path [line] (Answer1) -- ([xshift=-4cm]bert.south);
+		\path [line] (Sep1) -- ([xshift=-2cm]bert.south);
+		\path [line] (Question) -- (bert.south);
+		\path [line] (Sep2) -- ([xshift=2cm]bert.south);
+		\path [line] (Answer2) -- ([xshift=4cm]bert.south);
+		\path [line] (Cls2) -- ([xshift=6cm]bert.south);
+		
+		
+		\path [line] ([xshift=-6cm]bert.north) -- (classifier1.south);
+		\path [line] ([xshift=6cm]bert.north) -- (classifier2.south);
+		
+		\path [line,dashed] ([xshift=-4cm]bert.north) -- ([xshift=-4cm]rest.south);
+		\path [line,dashed] ([xshift=-2cm]bert.north) -- ([xshift=-2cm]rest.south);
+		\path [line,dashed] ([xshift=-0cm]bert.north) -- ([xshift=-0cm]rest.south);
+		\path [line,dashed] ([xshift=2cm]bert.north) -- ([xshift=2cm]rest.south);
+		\path [line,dashed] ([xshift=4cm]bert.north) -- ([xshift=4cm]rest.south);
+		\end{tikzpicture}
+	}
+\end{center}
+\caption{Our question-answering model.}
+\label{fig:model}
+\end{figure}
+
+
+$$
+P := \text{\textit{Learned parameter}}
+$$
+$$
+CT_{i,j} := \text{\textit{Classifier Tokens Concatened}}
+$$
+$$
+S'_{i,j} := P \cdot CT_{i,j}
+$$
+$$
+\text{\textit{Score}}_{i,j} := \frac{S'_{i,j} + (1 - S'_{j,i})}{2}
+$$
+
+Another part of the input sequence given to BERT is the segment embeddings - a number from {0, 1} which signifies wether the current token is part of the first sentece or the second. After trial and error, it was found that we perform best when giving a value of 1 for \textbf{each} of the answer tokens, and 0 for the question tokens. That makes sense, as part of the desire for symmetry in our model, and the fact that BERT wasn't trained with a possibilty for a third sentence, so using, for example, the number 2 for our second answer would not make any sense to it.
+
+After passing our input sequence through BERT, we use a concatenation of the final hidden states matching the classifier tokens as the sequence representation. We learn as a parameter a vector whose dot product with the sequence representation is the score for the given answer pair.
+
+\subsection{Pair scores integration}
+
+We conceived a few methods of combining the different pair scores into probabilities for the answers. In this section we will review those methods and compare them.
+
+\subsubsection{Learnt weights}
+
+In this method, we introduce more layers to derive the indiviual probabilities from the pair scores. We used 2 layers, with a hidden size of $ (number\ of\ pairs)^2 $ and normalizing with a softmax layer.
+
+\subsubsection{Markov chains}
+
+In this method, we find the stationary distribution of a weighted graph whose edge's weights are derived from our pair scores.
+The reasoning for this process is as follows - imagine a graph whose vertices are the given answers. We begin by choosing an answer randomly, and we want to move on to the best possible answer. At each time step, we move to a different answer, choosing based on the scores of the pairs in which our current answer participates, i.e. the better another answer performed against our current answer, the more likely we are to move to it.
+This process is powerful, because it captures the dependency between the different answers, e.g. if answer B is better than answer A, and answer C is better than answer B, than we'd like to factor in that information when comparing between answers A and C.
+
+% TODO: add a markov chain graph here
+
+Simply constructing a matrix with each cell being the score for the matching pair, normalizing each row so that we have a probability matrix, and then calculating the stationary distribution doesn't work well in practice. This is because normalizing the matrix causes the model to be unable to capture the absolute value of the scores, e.g. if it sees a row in which all values are similar, it can't differ the case in which all scores were low (and thus our "current" answer is good) from the case all of the scores were high.
+Consider the following matrix:
+
+$$
+\begin{bmatrix}
+0 & 0.95 & 0.85 & 0.25 \\
+0.05 & 0 & 0.98 & 0.74 \\
+0.15 & 0.02 & 0 & 0.45 \\
+0.75 & 0.26 & 0.55 & 0
+\end{bmatrix}
+$$
+
+We can see that the third answer had won in every comparison - thus, we would expect it to be assigned the highest probability. Given the currently described method, this in not the case, as the probabilities received would be:
+$$ \begin{bmatrix} 0.22614831 & 0.16630443 & 0.29576885 & \textbf{0.31177841} \end{bmatrix} $$
+
+We solve this problem by adding the average of each column to the matching cell on the diagonal. This makes sense, as this gives us the option of staying on the current choice, and the better a certain choice had performed against the other choices, the greater the possibilty of staying on it.
+After doing this, we derive this matrix for our example:
+
+$$
+\begin{bmatrix}
+\textbf{0.31} & 0.95 & 0.85 & 0.25 \\
+0.05 & \textbf{0.41} & 0.98 & 0.74 \\
+0.15 & 0.02 & \textbf{0.79} & 0.45 \\
+0.75 & 0.26 & 0.55 & \textbf{0.48}
+\end{bmatrix}
+$$
+
+And this probability matrix for our choices:
+$$ \begin{bmatrix} 0.16845236 & 0.13252954 & \textbf{0.43521662} & 0.26380148 \end{bmatrix} $$
+
+\subsubsection{Tie-breakers}
+
+This is not a method on its own, but it can be used on top of the other ones.
+Essentially, we can assert a "Certainty Threshold" on the probabilities obtained from the other methods, a rate between two probabilities under which we consider our prediction to be uncertain/unstable.
+If such a scenario arises, we then resort to choosing between the two highest-scored choices directly - that is, by looking at the score given to the pair and deciding accordingly.
+
+Note that this change does not cause a change in the probabilities themselves, it only changes the predicted answer. As such, it does not cause a change in the measured loss, thus does not affect the learned parameters. It does change, however, the measured accuracy, which means that when learning parameters we will favor a parameter set that maximizes the accuracy given this change.
+
+\section{Experiments and Results} 
+
+As our model deviates greatly from the assumptions that were made when the original BERT weights were trained, it is understanable that our model required more epochs to converge than the amount of epochs the original paper used when fine-tuning to the question answering task.
+We should also note that because each sample now consists of much more input sequences (the original model had one sequence per possible answer, our model has one sequence per possible answer \textbf{pair}), we are now more limited in our batch size, as the GPU has to hold the entire batch simultaneously. This problem can be mitigated by using gradient accumulation.
+
+Our models were trained in parts.
+In the first part, we trained solely on the dataset alterations part, without intergrating the pair scores. That is, our model was trained directly on identifying the better answer from a pair of answers. After 5 epochs with a dynamic learning rate (starting from 1e-6 and decreasing to 4e-7) we were able to acheive a 70.3\% accuracy on the dev set. (Note that this accuracy is measured over pairs and not over questions - it is not comparable to the performance of other models over this dataset).
+
+In the second part, we trained our model for 2 more epochs using each method of pair-scores integration suggested. Emperically, using the tie-breakers method on any of the suggested models caused a drop in performance, and thus it was discarded.
+A comparison of our experiment results follows.
+
+\begin{table}[h!]
+	\label{tbl:accuracy}
+	\vskip 0.15in
+	\begin{center}
+		\begin{small}
+			\begin{sc}
+				\begin{tabular}{lr}
+					\toprule
+					Method	& Accuracy (dev-set)\\
+					\midrule
+					Comparative Model + \\ \qquad \qquad Markov chains 	& 49.3\% \\
+					Comparative Model + \\ \qquad \qquad Learnt weights 	& 49.1\% \\
+					\midrule
+					Random guess & 25\% \\
+					Original BERT model & \textbf{56.7\%} \\
+					\bottomrule
+				\end{tabular}
+			\end{sc}
+		\end{small}
+	\end{center}
+	\vskip -0.1in
+	\caption{Full model comparison}
+\end{table}
+
+\section{Stuff from the example paper}
 
 Submission cite{TechReport} to ICML 2019 will be entirely electronic, via a web site
 (not email). Information about the submission process and \LaTeX\ templates

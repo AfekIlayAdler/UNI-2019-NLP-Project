@@ -1,0 +1,30 @@
+Things we did:
+	
+	[CLS] answer1 [SEP] question [SEP] answer2 [CLS]
+		why
+		what didn't work
+		
+		segmenting:
+			1.. 0.. 1..
+			why shouldn't we use "2":
+				wasn't trained on two
+				specifically, has already imbued a lot of meaning into "0"
+
+
+	Pairs to weights:
+		more layers
+			why relu
+			why (sigmoid? softmax?)
+			pretraining each layer seperately
+			
+		markovian based approach
+			why the trivial one is bad:
+				on one couple - meaningless
+				on more couples - fails to capture the relative weights
+			averaging each column
+				example
+			total process
+
+		tiebreakers and their failure
+
+	Training from modified dataset (treating each known couple of answers as a boolean figure)
