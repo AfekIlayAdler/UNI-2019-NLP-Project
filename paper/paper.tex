@@ -103,7 +103,7 @@ text width=5em, text centered, rounded corners, minimum height=4em, minimum widt
 Deep learning models are still far away from human-level performance in commonsense reasoning tasks.
 We introduce a multi-choice question answering scheme that models the dependencies between answers by
 building a relationship graph between the answers for a given question. 
-then, we compute a centrality measure for each node (answer) in the graph and predict the answer by taking the node with the maximum value of that centrality measure.
+Then, we compute a centrality measure for each node (answer) in the graph and predict the answer by taking the node with the maximum value of that centrality measure.
 We test ourselves on the challenging CommonsenseQA dataset and show that although our method is capable of modeling more complex relationships between the answers we did not manage to improve the current state of the art on this task.
 \end{abstract}
 
@@ -422,22 +422,22 @@ A comparison of our experiment results follows.
 
 \section{Discussion}
 \subsection{Train-Test Discrepancy}
-when humans tackle multi-choice questions we compare all answer pairs simultaneously, disqualify some unreasonable answers and approve others before we make a prediction. those, we narrow the number of possible solutions in a multi-phase process. in this paper, this is exactly what we wanted to achieve when we compared all answers pairs altogether. we believe that our model under performed because of Train Test Discrepancy; we are aiming to learn in a supervised way information which is not exactly given to us - in the training set, we know only the gold labels per each question and not the relationship between them. therefore, there is no information about answers which are totally wrong or answers which are close to each other and can be the prediction candidates. 
+When humans tackle multi-choice questions we compare all answer pairs simultaneously, disqualify some unreasonable answers and approve others before we make a prediction. Thus, we narrow the number of possible solutions in a multi-phase process. In this paper, this is exactly what we wanted to achieve when we compared all answers pairs altogether. One possible reason for our model's under-performance is Train Test Discrepancy; we are aiming to learn in a supervised way information which is not exactly given to us - In the training set, we know only the gold labels per each question and not the relationship between them. Therefore, there is no information about answers which are totally wrong or answers which are close to each other and can be the prediction candidates. 
 
-as well, in the training phase we create 4 answer pairs - the gold answer with all the other answers (number of answers - 1) and at test time we create all possible answer pairs which is 20. it appears that at training time the model learns to discriminate between the right answer and the wrong answer. a dynamic which is not necessarily the same at test time when we feed all answer pairs together. this discrepancy can be inherent in the dataset and the way it was built. e.g , it may be that the gold answer is better then all the other candidate answer but some answers are distractors which ``confuse" the model at test time.
+Also, assuming we are given 5 possible answers, in the training phase we create 8 answer pairs - the gold answer with all the other answers (for each ordering of the pairs). However, at test time we create all possible answer pairs which are 20. It appears that at training time the model learns to discriminate between the right answer and the wrong answers, A dynamic which is not necessarily the same at test time when we feed all answer pairs together. This discrepancy can be inherent in the dataset and the way it was built, e.g. it may be that the gold answer is better then all the other candidate answer but some answers are distractors which "confuse" the model at test time.
 
 \subsection{Conclusions}
-Neither the Markovian model nor the Learnt weights model outperformed the baseline model, in fact there was a siginficant gap between our methods and the baseline results. we believe that it is due to a combination of the following reasons:
+Neither the Markovian model nor the Learnt weights model outperformed the baseline model. In fact, there was a siginficant gap between our methods and the baseline results. We believe that it is due to a combination of the following reasons:
 \begin{itemize}
-\item train-test discrepancy issue.
-\item BERT was trained in a different manner than our architecture. it is likely  that our input representation has harmed the information distillation from the original BERT model those harming the final result. it is still an open question which input configuration is optimal in the sense that information from BERT model is kept but also answer pair information is learned. 
-\item  bigger datasets can help in this manner in order to be able to generalize well input configurations that is different then BERT baseline. as well, bigger datasets  can allow more freedom to use larger models with more parameters. in the current model we have 5 samples per each parameter learned which requires large regularization, possibly more complex generalization rules.
+\item Train-test discrepancy issue.
+\item BERT was trained in a different manner than our architecture. It is likely  that our input representation has harmed the information distillation from the original BERT model thus harming the final result. Which input configuration is optimal - is still in open question, in the sense that information from BERT model is distilled but also answer pair information is learnt. 
+\item  Bigger datasets can help in this manner, by enabling us to generalize well input configurations that are different than BERT baseline.
 \end{itemize}
 
 \section{Future Work}
-To solve the train-test discrepancy issue, we believe that it is possible to create a dataset with more detailed training labels, for example, ranking the answers and providing information about distractor answers. it is interesting to verify if we can achieve a better performance by removing this discrepancy.
+To solve the train-test discrepancy issue, we believe that it is possible to create a dataset with more detailed training labels, for example, ranking the answers and providing information about distractor answers. It is interesting to verify if we can achieve a better performance by removing this discrepancy.
 
-Another interesting idea to do with a ranked dataset is to fully ``neuralize"" our Markov chain solution. one way to do that can be by feeding all the answer pairs jointly to  BERT, compute a logit to every pair and compare it with the ranked ground troth ,than use a graph convolutional layers to classify the correct answer. it can also be interesting to examine the graph layer of this network for explainability reasons.  
+Another possible approach to improve upon our work with a \textbf{ranked} dataset is to fully "neuralize" our Markov chain solution. For instance, one could create a model that feeds all the answer pairs jointly to  BERT, compute a logit for every pair and compare it with the \textbf{ranked} ground truth, then use convolutional layers to classify the correct answer. It can also be interesting to examine the graph layer of this network for explainability reasons.  
 
 % In the unusual situation where you want a paper to appear in the
 % references without citing it in the main text, use \nocite
