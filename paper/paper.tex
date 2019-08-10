@@ -11,7 +11,7 @@
 \usepackage[latin1]{inputenc}
 \usepackage{tikz}
 
-\usetikzlibrary{shapes,arrows}
+\usetikzlibrary{shapes,automata,arrows,positioning,calc}
 
 % Define block styles
 
@@ -129,20 +129,20 @@ Due to the fact that the prominent approach to solve common sense QA problems is
 % We would like to note that this paper address specifically solutions for multi-choice QA with common sense reasoning and not closely related themes such as visual commonsense reasoning or co reference resolution.
 
 \subsection{Contextualized Word Embeddings}
-Based on the pioneering work of Word2Vec \cite{mikolov2013distributed} which enabled words to be represented as vectors, those
-enriching the information contained in the input for a variation of language based machine learning tasks, many models extended the Word2Vec concept by taking context into account; the same word has a different meaning in different context. the leading approaches to obtain a contextualized word representations is using the hidden layer of an LSTM \cite{hochreiter1997long} and more specifically a biLSTM such as in ELMO \cite{peters2018deep} or more recently using a transformer architecture such as \cite{devlin2018bert,yang2019xlnet}.
+Based on the pioneering work of Word2Vec \cite{mikolov2013distributed} which enabled words to be represented as vectors, thus
+enriching the information contained in the input for a variation of language based machine learning tasks, many models extended the Word2Vec concept by taking context into account; the same word has a different meaning in different context. The leading approaches to obtain a contextualized word representations is using the hidden layer of an LSTM \cite{hochreiter1997long} and more specifically a Bi-LSTM such as in ELMO \cite{peters2018deep} or more recently using a transformer architecture such as BERT \cite{devlin2018bert,yang2019xlnet}.
 
-The great power of WE or CWE is to enable using a generic method as a basis for task specific machine learning models; for instance, in natural language processing there are many different tasks (e.g. machine translation, sentiment analysis) and a simple model based on CWE with fine tuning on a given dataset usually provides much better results than previous models on a given task, creating a new bencmark for this specific task. the fact that mega companies provides those trained models as an open source service makes it easy to use for academics and in the industry as one.
+The great power of WE or CWE is to enable using a generic method as a basis for task specific machine learning models; For instance, in the field of natural language processing there are many different tasks (e.g. machine translation, sentiment analysis), yet a simple model based on CWE with fine tuning on a given dataset usually provides much better results than previous models on a given task, creating a new benchmark for this specific task. Companies interested in the field of natural language processing often release those trained models as an open source service, which makes CWE easy to use for academics and in the industry as one.
 
-CWE is a type of transfer learning method; a model is pretrained on a base dataset and fine tuned on the task dataset,  with the underlying hypothesis that information distilation is possible from one source (base dataset) to the other (task specific dataset).
-The main reason for the great success of CWE is that the base model is trained using supervised learning on huge amounts of data, e.g. BERT, was trained on 3.3B words. the fact that CWE models are also self trained makes it easier to collect such huge amount of data without the need to label examples. the downside of this models is that they use many parameters (BERT Large - 340M) - so trainig and infering requires large processing power and latency is a challenge for creating real time systems. in the next section we will introduce the benchmark model which we aim to improve - BERT for CommonsenseQA (which is identical to BERT for SWAG) as was introduced in the original paper of BERT.
+CWE is a type of a transfer learning method; a model is pretrained on a base dataset and fine tuned on the specific task dataset,  with the underlying assumption that information distillation is possible from one source (base dataset) to the other (task specific dataset).
+The main reason for the great success of CWE is that the base model is trained using supervised learning on huge amounts of data, e.g. BERT, was trained on 3.3B words. The fact that CWE models are also self trained makes it easier to collect such huge amount of data without the need to label samples. The downside of these models is that they use many parameters (BERT Large - 340M) - so much such that training and infering requires large processing power and latency is a challenge for creating real time systems. In the next section we will introduce the benchmark model which we aim to improve - BERT for CommonsenseQA (which is identical to BERT for SWAG) as was introduced in the original paper of BERT.
 
 \subsection{BERT}
-BERT is a word based CWE model that was pre-trained on two learning objectives. given a sentence, predict masked words (15\% of the words were masked) and next sentence prediction. BERT’s  model  architecture is a multi-layer bidirectional Transformer encoder \cite{vaswani2017attention} with the following hyper-parameters (BERT Large) - 12 Transformer blocks, hidden size 1024 (H) and 16 self attention heads. BERT input can be one or two sentences.
+BERT is a word based CWE model that was pre-trained on two learning objectives: Masked word predictions (15\% of the words were masked) and next sentence predictions. BERT's model  architecture is a multi-layer bidirectional Transformer encoder \cite{vaswani2017attention} with the following hyper-parameters (BERT Large) - 12 Transformer blocks, hidden size 1024 (H) and 16 self attention heads. BERT takes as input one or two sentences.
 
-BERT input representation (figure \ref{bert_input_repr}) uses WordPeace \cite{wu2016google} tokenization which is a data driven method that aims to achieve a balance between vocabulary size and out-of-vocab words. this way BERT stores only 30K vocabulary words very rarely encounter out-of-vocab words when tokenizing English texts. two special token are added for each sentence, a start token [CLS] and an end token [SEP]. if the input contains two sentences another [CLS] token is added in between the sentences. Due to the fact that Transformers do not encode the sequential nature of their inputs a segment ids and position embeddings are added as well to the input.
+BERT's input representation (figure \ref{bert_input_repr}) uses WordPeace \cite{wu2016google} tokenization which is a data driven method that aims to achieve a balance between vocabulary size and out-of-vocab words. This way BERT stores only 30K vocabulary words, yet very rarely encounters out-of-vocab words when tokenizing English texts. Two special token are added for each sentence, a start token [CLS] and an end token [SEP]. If the input contains two sentences another [SEP] token is added in between the sentences. Due to the fact that Transformers do not encode the sequential nature of their inputs a segment ids and position embeddings are added as well to the input.
 
-\begin{figure}[ht]
+\begin{figure}[h!]
 \vskip 0.2in
 \begin{center}
 \centerline{\includegraphics[width=\columnwidth]{bert_input_repr}}
@@ -151,12 +151,43 @@ BERT input representation (figure \ref{bert_input_repr}) uses WordPeace \cite{wu
 \end{center}
 \vskip -0.2in
 \end{figure}
-fine tuning BERT is simply swapping out the appropriate input and output, whether the input is a single text or a text pair the input and output pairs are given to the model and the parameters are fine-tuned by back-propagation end to end after connecting to the [CLS] token embedding to a task specific classification layer with a given loss function. 
+
+Fine tuning BERT is performed by appending the task specific classification layer with a given loss function to the pretrained model, training using the specific task's input / output, and changing parameters using back-propagation.
 
 \subsection{BERT baseline for SWAG}
 
-In the BERT Paper, the authors approach the SWAG challange with the following input (figure \ref{fig:model_orig}). that input is fed to BERT architecture and the [CLS] token embedding is used to predict a logit by calculating a dot product with a learned vector. this process is done for each answer independently of each other and then a softmax layer with cross entropy loss is calculated to compute the error. As we can see, this architecture introduce only H (1024) new parameters to the existing BERT model.
+In the BERT Paper, the authors approach the SWAG challange with the described input (figure \ref{fig:model_orig}). that input is fed to BERT's architecture and the [CLS] token embedding is used to predict a logit by calculating a dot product with a learned vector. this process is done for each answer independently of each other and then a softmax layer with cross entropy loss is calculated to compute the error. As we can see, this architecture introduces only H (1024) new parameters to the existing BERT model.
 
+\begin{figure}[h!]
+	\begin{center}
+		\scalebox{0.7}{
+			\begin{tikzpicture}[node distance = 2cm, auto]
+			\node [bigblock10] (bert) at (0,0) {Pretrained BERT };
+			\node [block, below of=bert] (SEP1) {[SEP]};
+			\node [block, left of=SEP1] (question) {Question};
+			\node [block, left of=question] (CLS) {[CLS]};
+			\node [block, right of=SEP1] (answer) {Answer};
+			\node [block, right of=answer] (SEP2) {[SEP]};
+			\node [block] (classifier) at (-4,2) {Classifier token};
+			\node [block8] (rest) at (1,2) {Unused tokens};
+			\path [line] (CLS) -- ([xshift=-4cm]bert.south);
+			\path [line] (question) -- ([xshift=-2cm]bert.south);
+			\path [line] (SEP1) -- (bert.south);
+			\path [line] (answer) -- ([xshift=2cm]bert.south);
+			\path [line] (SEP2) -- ([xshift=4cm]bert.south);
+			\path [line] ([xshift=-4cm]bert.north) -- (classifier.south);
+			
+			\path [line,dashed] ([xshift=-2cm]bert.north) -- ([xshift=-3cm]rest.south);
+			\path [line,dashed] ([xshift=-0cm]bert.north) -- ([xshift=-1cm]rest.south);
+			\path [line,dashed] ([xshift=2cm]bert.north) -- ([xshift=1cm]rest.south);
+			\path [line,dashed] ([xshift=4cm]bert.north) -- ([xshift=3cm]rest.south);
+			
+			\end{tikzpicture}
+		}
+	\end{center}
+	\caption{The original paper's question-answering model.}
+	\label{fig:model_orig}
+\end{figure}
 
 % \begin{equation}
 % [CLS][Question][SEP][Answer][SEP] 
@@ -164,20 +195,16 @@ In the BERT Paper, the authors approach the SWAG challange with the following in
 % \end{equation} 
 
 \section{CommonSeneseQA}
-CommonSeneseQA is a dataset which specifically made for common sense reasoning, by asking crowd workers to generate questions from concepts from ConceptNet. it contains 12,247 examples and 5 answers per question. 
-the Authors use the same architecture as in the BERT benchmark for SWAG
-and report Accuracy score of 56.7\%. The current state of the art
-on this dataset is currently 68.3\% accuracy, 23.6\% below human level.
+CommonSenseQA is a dataset specifically made for common sense reasoning, by asking crowd workers to generate questions from concepts from ConceptNet. It contains 12,247 examples and 5 answers per question. 
+the Authors use the same architecture as in the BERT benchmark for SWAG and report an accuracy score of 56.7\%. The current state of the art on this dataset is currently 68.3\% accuracy, which is 23.6\% below human level.
 
 \section{Methodology}
-We propose a method with different variants to model the dependencies between answers, by feeding answer pairs jointly to BERT's architecture. by doing so, we contribute by:
+We propose a method with different variants to model the dependencies between answers, by feeding answer pairs jointly to BERT's architecture. Doing so, we contribute by:
+
 \begin{itemize}
 \item making the model more expressive by removing the independence assumption
 \item extending the model to deal with questions as 'what is largest?"
-\item  extending the model to deal with answers as 'all answer are correct" or 'none of the above"
 \end{itemize}
-
-\section{Methodology}
 
 We derive our model from the BERT baseline for SWAG. However, as we want our model to compare between the different possible answers, we deviate from the original model by introducing the model with the question and 2 possible answers as each input sequence, for which the model returns a score - 1 meaning the first answer is more likely, and 0 if the second answer is the likeliest. Having received a score for each of pairs, we then integrate those into probability scores for each of the original answers - and then choose the one with the highest probability as our predicted answer.
 
@@ -188,39 +215,9 @@ In the original paper, each input sequence consisted of a classifier token ('[CL
 \tikzset{
 	font={\fontsize{12pt}{12}\selectfont}}
 
-\begin{figure}[h!]
-\begin{center}
-\scalebox{0.7}{
-	\begin{tikzpicture}[node distance = 2cm, auto]
-	\node [bigblock10] (bert) at (0,0) {Pretrained BERT };
-	\node [block, below of=bert] (SEP1) {'SEP'};
-	\node [block, left of=SEP1] (question) {Question};
-	\node [block, left of=question] (CLS) {'CLS'};
-	\node [block, right of=SEP1] (answer) {Answer};
-	\node [block, right of=answer] (SEP2) {'SEP'};
-	\node [block] (classifier) at (-4,2) {Classifier token};
-	\node [block8] (rest) at (1,2) {Unused tokens};
-	\path [line] (CLS) -- ([xshift=-4cm]bert.south);
-	\path [line] (question) -- ([xshift=-2cm]bert.south);
-	\path [line] (SEP1) -- (bert.south);
-	\path [line] (answer) -- ([xshift=2cm]bert.south);
-	\path [line] (SEP2) -- ([xshift=4cm]bert.south);
-	\path [line] ([xshift=-4cm]bert.north) -- (classifier.south);
-	
-	\path [line,dashed] ([xshift=-2cm]bert.north) -- ([xshift=-3cm]rest.south);
-	\path [line,dashed] ([xshift=-0cm]bert.north) -- ([xshift=-1cm]rest.south);
-	\path [line,dashed] ([xshift=2cm]bert.north) -- ([xshift=1cm]rest.south);
-	\path [line,dashed] ([xshift=4cm]bert.north) -- ([xshift=3cm]rest.south);
-	
-	\end{tikzpicture}
-}
-\end{center}
-\caption{The original paper's question-answering model.}
-\label{fig:model_orig}
-\end{figure}
 
-Our model deviates from these assumptions. Instead, each input sequence was constructed from the question and 2 possible answers in the following manner: A classifier token, the first answer, a separator token, the question, a separator token, the second answer, and another classifier token (As seen in figure \ref{fig:model}). Note, that this construction break several of the original BERT paper assumptions - each of our input sequences consist of more than just one classifier token, and more than just two sentences. As such, it is possible that BERT will suffer from reduced performance, as its entire training process was built around these assumptions.
-However, breaking these assumptions was a crucial part of what made our constructions work - it allowed for each of the classifier tokens to "absorb" the meaning of the answer closer to it, and imporved the symmetry of our model in regard to each of the two answers.
+Our model deviates from these assumptions. Instead, each input sequence was constructed from the question and 2 possible answers in the following manner: A classifier token, the first answer, a separator token, the question, a separator token, the second answer, and another classifier token (As seen in figure \ref{fig:model}). Note, that this construction breaks several of the original BERT paper assumptions - each of our input sequences consist of more than just one classifier token, and more than just two sentences. As such, it is possible that BERT will suffer from reduced performance, as its entire training process was built around these assumptions.
+However, breaking these assumptions was a crucial part of what made our constructions work - it allowed for each of the classifier tokens to "absorb" the meaning of the answer closer to it, and imporved the symmetry of our model in regards to each of the two answers.
 
 
 \tikzset{
@@ -232,12 +229,12 @@ However, breaking these assumptions was a crucial part of what made our construc
 		\begin{tikzpicture}[node distance = 2cm, auto]
 		\node [bigblock14] (bert) at (0,0) {Pretrained BERT};
 		\node [block, below of=bert] (Question) {Question};
-		\node [block, left of=Question] (Sep1) {'SEP'};
+		\node [block, left of=Question] (Sep1) {[SEP]};
 		\node [block, left of=Sep1] (Answer1) {Answer1};
-		\node [block, left of=Answer1] (Cls1) {'CLS'};
-		\node [block, right of=Question] (Sep2) {'SEP'};
+		\node [block, left of=Answer1] (Cls1) {[CLS]};
+		\node [block, right of=Question] (Sep2) {[SEP]};
 		\node [block, right of=Sep2] (Answer2) {Answer2};
-		\node [block, right of=Answer2] (Cls2) {'CLS'};
+		\node [block, right of=Answer2] (Cls2) {[CLS]};
 		\node [block] (classifier1) at (-6,2) {Classifier token 1};
 		\node [block] (classifier2) at (6,2) {Classifier token 2};
 		\node [block10] (rest) at (0,2) {Unused tokens};
@@ -281,13 +278,14 @@ However, breaking these assumptions was a crucial part of what made our construc
 
 Another part of the input sequence given to BERT is the segment embeddings - a number from \{0, 1\} which signifies whether the current token is part of the first sentence or the second. After trial and error, it was found that we perform best when giving a value of 1 for \textbf{each} of the answer tokens, and 0 for the question tokens. That makes sense, as part of the desire for symmetry in our model, and the fact that BERT wasn't trained with a possibility for a third sentence, so using, for example, the number 2 for our second answer would not make any sense to it.
 
-After passing our input sequence through BERT, we use a concatenation of the final hidden states matching the classifier tokens as the sequence representation. We learn as a parameter a vector whose dot product with the sequence representation is the score for the given answer pair (equation \ref{edge_score}). than, we compute the edge score between answers i to j by 'averaging' the sigmoid result of the two. add a sentence \# \ \# \# \# \# \#
+After passing our input sequence through BERT, we use a concatenation of the final hidden states matching the classifier tokens as the sequence representation. We learn as a parameter a vector whose dot product with the sequence representation is the score for the given answer pair (equation \ref{edge_score}). Then, we compute the edge score between answers i to j by averaging the sigmoid result of the two. 
+
+% TODO: you wrote 'add a sentence', why? 
 
 
 \begin{equation}
-  \label{eq:t}
   \begin{aligned}
-      \vec{CT_{i,j}} &:= \text{\textit{Classifier Tokens Concatenated}}\\ 
+      \vec{CT_{i,j}} &:= \text{\textit{Classifier Tokens Concatenated \footnotemark}}\\ 
     \vec{P} &:= \text{\textit{Learned parameters}}\\
     S'_{i,j} &:= sigmoid(\vec{CT_{i,j}} \cdot \vec{P})\\
     \text{\textit{Score}}_{i,j} &:= \frac{S'_{i,j} + (1-S'_{j,i}))}{2}
@@ -295,25 +293,61 @@ After passing our input sequence through BERT, we use a concatenation of the fin
   \label{edge_score}
 \end{equation}
 
+\footnotetext{Classifier tokens concatenated, after running through the BERT model using answers $i, j$ for input}
+
 \subsection{Pair scores integration}
 
-We conceived a few methods of combining the different pair scores into probabilities for the answers. In this section we will review those methods and compare them.
+After runnning the previously described part of the model, we receive a score for each of the answer pairs, meaning "How much more likely is answer A than answer B". We conceived a few methods of combining the different pair scores into probabilities for the answers. In this section we will review those methods and compare them.
 
 \subsubsection{Learnt weights}
 
-In this method, we introduce more layers to derive the indiviual probabilities from the pair scores. We used 2 layers, with a hidden size of $ (number\ of\ pairs)^2 $ and normalizing with a softmax layer.
+In this method, we introduce more layers to derive the indiviual probabilities from the pair scores. We use 2 layers, with a hidden size of $ (number\ of\ pairs)^2 $ and normalizing with a softmax layer. This generates a valid probability distribution over the possible answers.
 
 \subsubsection{Markov chains}
 
 In this method, we find the stationary distribution of a weighted graph whose edge's weights are derived from our pair scores.
 The reasoning for this process is as follows - imagine a graph whose vertices are the given answers. We begin by choosing an answer randomly, and we want to move on to the best possible answer. At each time step, we move to a different answer, choosing based on the scores of the pairs in which our current answer participates, i.e. the better another answer performed against our current answer, the more likely we are to move to it.
-This process is powerful, because it captures the dependency between the different answers, e.g. if answer B is better than answer A, and answer C is better than answer B,\# \# \# \# \#
-than we'd like to factor in that information when comparing between answers A and C. 
+This process is powerful, because it captures the dependency between the different answers, e.g. if answer B is better than answer A, and answer C is better than answer B, then we'd like to factor in that information when comparing between answers A and C. 
 
-% TODO: add a markov chain graph here
+\tikzset{
+	font={\fontsize{12pt}{12}\selectfont}}
+
+\begin{figure}[h!]
+	\begin{center}
+		\scalebox{0.6}{
+			\begin{tikzpicture}[->, >=stealth', auto, semithick, node distance=3cm]
+			\tikzstyle{every state}=[fill=white,draw=black,thick,text=black,scale=1]
+			\tikzstyle{every node}=[text=blue]
+			\node[state]    (A)                     {$A$};
+			\node[state]    (B)[above right of=A]   {$B$};
+			\node[state]    (C)[below right of=A]   {$C$};
+			\node[state]    (D)[below right of=B]   {$D$};
+			\path
+			(A) edge[loop left]     node{$0.3$}         (A)
+			edge[bend left]     node{$0.2$}     (B)
+			edge[bend left,below]      node[above=-0.1cm]{$0.45$}      (D)
+			edge[bend right]    node[below=0.3cm]{$0.05$}      (C)
+			(B) edge                node[above=-0.1cm]{$0.1$}           (D)
+			edge[loop above]     node{$0.3$}         (B)
+			edge                node[above=-0.1cm]{$0.05$}           (A)
+			edge[bend right]    node[above=-0.1cm]{$0.55$}           (C)
+			(C) edge                node[above=-0.1cm]{$0.7$}           (D)
+			edge[bend right]    node[above=-0.1cm]{$0.1$}           (B)
+			edge[loop below]     node{$0.05$}         (C)
+			edge                node[above=-0.1cm]{$0.15$}           (A)
+			(D) edge[loop right]    node{$0.55$}     (D)
+			edge[bend right,right]    node{$0$}      (B)
+			edge[bend left]     node{$0.2$}      (C)
+			edge[bend left,above]     node{$0.25$}         (A);
+			\end{tikzpicture}
+		}
+	\end{center}
+	\caption{A markov chain with 4 nodes.}
+	\label{fig:markov_chain}
+\end{figure}
 
 Simply constructing a matrix with each cell being the score for the matching pair, normalizing each row so that we have a probability matrix, and then calculating the stationary distribution doesn't work well in practice. This is because normalizing the matrix causes the model to be unable to capture the absolute value of the scores, e.g. if it sees a row in which all values are similar, it can't differ the case in which all scores were low (and thus our "current" answer is good) from the case all of the scores were high.
-Consider the following matrix:
+Consider the following pair-score matrix, extracted from a sample run of our previously discussed model:
 
 $$
 \begin{bmatrix}
@@ -324,7 +358,7 @@ $$
 \end{bmatrix}
 $$
 
-We can see that the third answer had won in every comparison - thus, we would expect it to be assigned the highest probability. Given the currently described method, this in not the case, as the probabilities received would be:
+We can see that the third answer had won in every comparison (every non-diagonal cell in the third column is $>0.5$) - thus, we would expect it to be assigned the highest probability. Given the currently described method, this in not the case, as the probabilities received would be:
 $$ \begin{bmatrix} 0.22614831 & 0.16630443 & 0.29576885 & \textbf{0.31177841} \end{bmatrix} $$
 
 We solve this problem by adding the average of each column to the matching cell on the diagonal. This makes sense, as this gives us the option of staying on the current choice, and the better a certain choice had performed against the other choices, the greater the possibility of staying on it.
@@ -339,7 +373,8 @@ $$
 \end{bmatrix}
 $$
 
-And this probability matrix for our choices:
+We then normalize the matrix and calculate the stationary probability distribution, which now seems to describe the relationships between our answers well:
+
 $$ \begin{bmatrix} 0.16845236 & 0.13252954 & \textbf{0.43521662} & 0.26380148 \end{bmatrix} $$
 
 \subsubsection{Tie-breakers}
