@@ -33,7 +33,7 @@ text width=5em, text centered, rounded corners, minimum height=4em, minimum widt
 % please comment out the following usepackage line and replace
 % \usepackage{icml2019} with \usepackage[nohyperref]{icml2019} above.
 \usepackage{hyperref}
-
+\usepackage{mathtools}
 % Attempt to make hyperref and algorithmic work together better:
 \newcommand{\theHalgorithm}{\arabic{algorithm}}
 
@@ -108,22 +108,23 @@ We test ourselves on the challenging CommonsenseQA dataset and show that althoug
 \end{abstract}
 
 \section{Introduction}
-When we face a multi-choice question answering (QA) problem where we have to choose the most 
-probable answer we arrive at it with prior information and knowledge. for instance, we have some kind of a
+When we face a multi-choice question answering (QA) problem where we have to choose the most probable answer, we arrive at it with prior information and knowledge. for instance, we have some kind of a
 
-Whereas in some cases the state of the art machine-learning methods which were trained on massive amount of data to infer prediction roles
+% TODO: Complete the previous sentence??
+
+While in some cases the state of the art machine-learning methods which were trained on massive amount of data to infer prediction roles
 outperforms human-level by a large margin (e.g. SQUAD 2.0 \cite{rajpurkar2018know}),
 In the field of common sense reasoning  \cite{talmor2018commonsenseqa} state of the art algorithms fail to generalize and are yet inferior to human level performance.
-this is due to two main reasons. first, is that when using algorithms such as fine-tuning a pre-trained language model, it is likely that this knowledge (common sense) does not exist explicitly in the pre training corpus. and second, is due to the fact that creating massive datasets for this purpose solely is hard, and developed only in the last years mostly by crowdsourcing.
+This is due to two main reasons: first, is that when using algorithms such as fine-tuning a pre-trained language model, it is likely that this knowledge (common sense) does not exist explicitly in the pre training corpus, and second, is due to the fact that creating massive datasets for this purpose solely is hard, and developed only in the last years mostly by crowdsourcing.
 
-Due to this inherent difficulty of this methods the research community invests resources in creating larger-scale datasets in different difficulty levels, e.g., the SWAG \cite{zellers2018swag} dataset with ~100K examples where \cite{devlin2018bert} demonstrate a model which is already at a human level and the CommonseneQA \cite{talmor2018commonsenseqa} a dataset which was made especially for common sense reasoning with \~{}10K samples where the state of the art is much lower then human-level. for a detailed survey of resources see \cite{storks2019commonsense}. 
+Due to this inherent difficulty of this task, the research community invests resources in creating larger-scale datasets with different difficulty levels, e.g., the SWAG \cite{zellers2018swag} dataset with ~100K examples for which \cite{devlin2018bert} demonstrate a model which is already at a human level, and the CommonseneQA \cite{talmor2018commonsenseqa}, a dataset which was made especially for common sense reasoning with \~{}10K samples where the state of the art is much lower then human-level. For a detailed survey of resources see \cite{storks2019commonsense}. 
 
 In this work, we suggest and evaluate models which eliminate the Independence assumption between answers for a given question, aiming to improve the benchmark on the CommonsenseQA dataset. 
 
 \section{Background and Related Work}
-Research on machine common sense QA has long been acknowledged for it's critical component in natural language understanding. but only recently with the embracing of deep learning in natural language processing and crowdsourcing to create larger scale datasets, major breakthroughs has emerged; to the best of the author's knowledge, the first large scale common sense reasoning QA dataset was introduced is 2018 \cite{storks2019commonsense}.
+Research on machine common sense QA has long been acknowledged for its critical component in natural language understanding. However, only recently, with the embracing of deep learning in natural language processing and crowdsourcing to create larger scale datasets, major breakthroughs has emerged; To the best of the author's knowledge, the first large scale common sense reasoning QA dataset was introduced is 2018 \cite{storks2019commonsense}.
 
-Due to the fact that the prominent approach to to solve common sense QA problems is with word embeddings (WE) and contextualized word embeddings (CWE) in the next section we will provide a brief introduction to CVE and explain how to use it in the context of common sense QA.
+Due to the fact that the prominent approach to solve common sense QA problems is with word embeddings (WE) and contextualized word embeddings (CWE) in the next section we will provide a brief introduction to CWE and explain how to use it in the context of common sense QA.
 
 % We would like to note that this paper address specifically solutions for multi-choice QA with common sense reasoning and not closely related themes such as visual commonsense reasoning or co reference resolution.
 
