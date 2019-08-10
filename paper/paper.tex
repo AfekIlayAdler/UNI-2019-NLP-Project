@@ -206,7 +206,74 @@ We propose a method with different variants to model the dependencies between an
 \item extending the model to deal with questions as 'what is largest?"
 \end{itemize}
 
-We derive our model from the BERT baseline for SWAG. However, as we want our model to compare between the different possible answers, we deviate from the original model by introducing the model with the question and 2 possible answers as each input sequence, for which the model returns a score - 1 meaning the first answer is more likely, and 0 if the second answer is the likeliest. Having received a score for each of pairs, we then integrate those into probability scores for each of the original answers - and then choose the one with the highest probability as our predicted answer.
+We derive our model from the BERT baseline for SWAG. However, as we want our model to compare between the different possible answers, we deviate from the original model by introducing the model with the question and 2 possible answers as each input sequence, for which the model returns a score - 1 meaning the first answer is more likely, and 0 if the second answer is the likeliest. Having received a score for each of pairs, we then integrate those into probability scores for each of the original answers - and then choose the one with the highest probability as our predicted answer. A full overview of our model can be seen in figure \ref{fig:full_model_overview}.
+
+\tikzset{
+	font={\fontsize{15pt}{14}\selectfont}}
+
+\begin{figure}[h]
+	\begin{center}
+		\scalebox{0.5}{
+			\begin{tikzpicture}[node distance = 2cm, auto]
+			\node (a1) at (0,0) {Answer 1};
+			\node (a2) at (3,0) {Answer 2};
+			\node (a3) at (6,0) {Answer 3};
+			\node (a4) at (9,0) {Answer 4};
+			\node (a5) at (12,0) {Answer 5};
+			
+			\node [block] (bert1) at (0,3) {BERT based pair score model};
+			\node [block] (bert2) at (2,3) {BERT based pair score model};
+			\node [block] (bert3) at (4,3) {BERT based pair score model};
+			\node (threedots) at (6,3) {...};
+			\node [block] (bert4) at (8,3) {BERT based pair score model};
+			\node [block] (bert5) at (10,3) {BERT based pair score model};
+			\node [block] (bert6) at (12,3) {BERT based pair score model};
+			
+			\path [line] (a1) -- (bert1.south);
+			\path [line] (a2) -- ([xshift=0cm]bert1.south);
+			\path [line] (a1) -- (bert2.south);
+			\path [line] (a3) -- ([xshift=0cm]bert2.south);
+			\path [line] (a1) -- (bert3.south);
+			\path [line] (a4) -- ([xshift=0cm]bert3.south);
+			\path [line] (a2) -- (bert4.south);
+			\path [line] (a5) -- ([xshift=0cm]bert4.south);
+			\path [line] (a3) -- (bert5.south);
+			\path [line] (a5) -- ([xshift=0cm]bert5.south);
+			\path [line] (a4) -- (bert6.south);
+			\path [line] (a5) -- ([xshift=0cm]bert6.south);
+			
+			\node [bigblock14, fill=yellow!20,text width=10cm] (integration) at (6,8) {Pair score integration};
+			
+			\path [line] (bert1.north) -- node [text width=1.3cm, align=center]{Score for (1,2) pair} ([xshift=-6cm]integration.south);
+			\path [line] (bert2.north) -- node [text width=1.3cm, align=center]{Score for (1,3) pair} ([xshift=-4cm]integration.south);
+			\path [line] (bert3.north) -- node [text width=1.3cm, align=center]{Score for (1,4) pair} ([xshift=-2cm]integration.south);
+			\path [line] (bert4.north) -- node [text width=1.3cm, align=center, xshift=1.7cm]{Score for (2,5) pair} ([xshift=2cm]integration.south);
+			\path [line] (bert5.north) -- node [text width=1.3cm, align=center, xshift=1.7cm]{Score for (3,5) pair} ([xshift=4cm]integration.south);
+			\path [line] (bert6.north) -- node [text width=1.3cm, align=center, xshift=1.7cm]{Score for (4,5) pair} ([xshift=6cm]integration.south);
+			
+			\path [line,dashed] ([yshift=0.5cm]threedots.north) -- (integration.south);
+			
+			\node [text width=2cm](s1) at (0,11) {Score for answer 1};
+			\node [text width=2cm](s2) at (3,11) {Score for answer 2};
+			\node [text width=2cm](s3) at (6,11) {Score for answer 3};
+			\node [text width=2cm](s4) at (9,11) {Score for answer 4};
+			\node [text width=2cm](s5) at (12,11) {Score for answer 5};
+			
+			\path [line] ([xshift=-6cm]integration.north) -- (s1);
+			\path [line] ([xshift=-3cm]integration.north) -- (s2);
+			\path [line] ([xshift=0cm]integration.north) -- (s3);
+			\path [line] ([xshift=3cm]integration.north) -- (s4);
+			\path [line] ([xshift=6cm]integration.north) -- (s5);
+			
+			%Leaving some room at the top of the graph
+			\node at (6,12.5){};
+			
+			\end{tikzpicture}
+		}
+	\end{center}
+	\caption{Our full model overview.}
+	\label{fig:full_model_overview}
+\end{figure}
 
 \subsection{Dataset alterations}
 
