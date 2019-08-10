@@ -108,14 +108,15 @@ We test ourselves on the challenging CommonsenseQA dataset and show that althoug
 \end{abstract}
 
 \section{Introduction}
-When we face a multi-choice question answering (QA) problem where we have to choose the most probable answer, we arrive at it with prior information and knowledge. for instance, we have some kind of a
+When we face a multi-choice problem where we have to choose the most 
+probable answer we arrive to it with prior information and knowledge. e.g,  example, we have some kind of a language model that tells us if sentence A is more probable then sentence B, and we have knowledge about the physical world which tells us what is more possible or probable.
 
 % TODO: Complete the previous sentence??
 
 While in some cases the state of the art machine-learning methods which were trained on massive amount of data to infer prediction roles
 outperforms human-level by a large margin (e.g. SQUAD 2.0 \cite{rajpurkar2018know}),
 In the field of common sense reasoning  \cite{talmor2018commonsenseqa} state of the art algorithms fail to generalize and are yet inferior to human level performance.
-This is due to two main reasons: first, is that when using algorithms such as fine-tuning a pre-trained language model, it is likely that this knowledge (common sense) does not exist explicitly in the pre training corpus, and second, is due to the fact that creating massive datasets for this purpose solely is hard, and developed only in the last years mostly by crowdsourcing.
+This is due to two main reasons: first, is that when using algorithms such as fine-tuning a pre-trained language model, it is likely that this knowledge (common sense) does not exist explicitly in the pre-training corpus. And second, is due to the fact that creating massive datasets for this purpose solely is hard, and developed only in the last years mostly by crowdsourcing.
 
 Due to this inherent difficulty of this task, the research community invests resources in creating larger-scale datasets with different difficulty levels, e.g., the SWAG \cite{zellers2018swag} dataset with ~100K examples for which \cite{devlin2018bert} demonstrate a model which is already at a human level, and the CommonseneQA \cite{talmor2018commonsenseqa}, a dataset which was made especially for common sense reasoning with \~{}10K samples where the state of the art is much lower then human-level. For a detailed survey of resources see \cite{storks2019commonsense}. 
 
@@ -140,7 +141,7 @@ The main reason for the great success of CWE is that the base model is trained u
 \subsection{BERT}
 BERT is a word based CWE model that was pre-trained on two learning objectives: Masked word predictions (15\% of the words were masked) and next sentence predictions. BERT's model  architecture is a multi-layer bidirectional Transformer encoder \cite{vaswani2017attention} with the following hyper-parameters (BERT Large) - 12 Transformer blocks, hidden size 1024 (H) and 16 self attention heads. BERT takes as input one or two sentences.
 
-BERT's input representation (figure \ref{bert_input_repr}) uses WordPeace \cite{wu2016google} tokenization which is a data driven method that aims to achieve a balance between vocabulary size and out-of-vocab words. This way BERT stores only 30K vocabulary words, yet very rarely encounters out-of-vocab words when tokenizing English texts. Two special token are added for each sentence, a start token [CLS] and an end token [SEP]. If the input contains two sentences another [SEP] token is added in between the sentences. Due to the fact that Transformers do not encode the sequential nature of their inputs a segment ids and position embeddings are added as well to the input.
+BERT's input representation (figure \ref{bert_input_repr}) uses WordPeace \cite{wu2016google} tokenization which is a data driven method that aims to achieve a balance between vocabulary size and out-of-vocabulary words. This way BERT stores only 30K vocabulary words, yet very rarely encounters out-of-vocabulary words when tokenizing English texts. Two special token are added for each sentence, a start token [CLS] and an end token [SEP]. If the input contains two sentences another [SEP] token is added in between the sentences. Due to the fact that Transformers do not encode the sequential nature of their inputs a segment ids and position embeddings are added as well to the input.
 
 \begin{figure}[h!]
 \vskip 0.2in
@@ -330,18 +331,6 @@ However, breaking these assumptions was a crucial part of what made our construc
 \label{fig:model}
 \end{figure}
 
-% $$
-% P := \text{\textit{Learned parameter}}
-% $$
-% $$
-% CT_{i,j} := \text{\textit{Classifier Tokens Concatened}}
-% $$
-% $$
-% S'_{i,j} := P \cdot CT_{i,j}
-% $$
-% $$
-% \text{\textit{Score}}_{i,j} := \frac{S'_{i,j} + (1 - S'_{j,i})}{2}
-% $$
 
 Another part of the input sequence given to BERT is the segment embeddings - a number from \{0, 1\} which signifies whether the current token is part of the first sentence or the second. After trial and error, it was found that we perform best when giving a value of 1 for \textbf{each} of the answer tokens, and 0 for the question tokens. That makes sense, as part of the desire for symmetry in our model, and the fact that BERT wasn't trained with a possibility for a third sentence, so using, for example, the number 2 for our second answer would not make any sense to it.
 
